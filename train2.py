@@ -112,6 +112,7 @@ def save_checkpoint(model, optimizer, epoch, loss, filepath):
         'optimizer_state_dict': optimizer.state_dict(),
         'loss': loss,
     }
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
     torch.save(checkpoint, filepath)
     logging.info(f"Checkpoint saved at {filepath}")
 
@@ -189,7 +190,7 @@ def train(model, processor, train_loader, eval_dataset, device, args, logger, ch
             os.remove(ckpt)
 
         # Save checkpoint
-        #os.makedirs(args.output_dir, exist_ok=True)
+        os.makedirs(args.output_dir, exist_ok=True)
         checkpoint_path = f"{args.output_dir}/checkpoint_epoch_{epoch + 1}.pth"
         save_checkpoint(model, optimizer, epoch + 1, avg_loss, checkpoint_path)
 
@@ -301,8 +302,9 @@ def main(args):
     model.config.attention_dropout = 0.1
 
     logger.info("Preparing dataset...")
-    df = pd.read_csv(args.csv, sep=";")
-    df = resolve_paths(df, Path(args.csv))
+    csv_path = Path(args.data_path, args.csv)
+    df = pd.read_csv(csv_path, sep=";")
+    df = resolve_paths(df, Path(csv_path))
     original_dataset = Dataset.from_pandas(df)
     original_dataset = original_dataset.cast_column("path", Audio(sampling_rate=16000))
     processed_dataset = preprocess_dataset(original_dataset, processor)
@@ -335,14 +337,15 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Manual fine-tuning of Wav2Vec2.")
-    default_csv = Path(__file__).resolve().parent / "transcript.csv"
-    parser.add_argument("--csv", type=str, default=str(default_csv))
-    #parser.add_argument("--csv", type=str, default="transcript.csv")
+    #default_csv = Path(__file__).resolve().parent / "transcript.csv"
+    #parser.add_argument("--csv", type=str, default=str(default_csv))
+    parser.add_argument('--data_path', type=str,default="C:\\Users\\janne\\AppliedML\\Pytorch\\Application\\finglishtranslator\\data\\train")
+    parser.add_argument("--csv", type=str, default="transcript.csv")
     parser.add_argument("--model-name", type=str, default="facebook/wav2vec2-base-960h")
     #parser.add_argument("--model-name", type=str, default="facebook/wav2vec2-large-960h-lv60-self")
-    parser.add_argument("--output-dir", type=str, default="./wav2vec2-manual")
+    parser.add_argument("--output-dir", type=str, default="C:\\Users\\janne\\AppliedML\\Pytorch\\Application\\finglishtranslator\\wav2vec2-manual")
     parser.add_argument("--batch-size", type=int, default=8)
-    parser.add_argument("--epochs", type=int, default=5)
+    parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--learning-rate", type=float, default=1e-8)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--checkpoint-path", type=str, default=None, help="Path to checkpoint to resume training from.")
